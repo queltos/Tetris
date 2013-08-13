@@ -8,15 +8,18 @@ pygame.init()
 
 white = pygame.Color("white")
 
-fieldsize = 10, 18
+class fieldsize:
+    x = 10
+    y = 18
+
 rectsize = 20
 
-#size = width, height = rectsize * fieldsize[0], rectsize * fieldsize[1]
+#size = width, height = rectsize * fieldsize.x, rectsize * fieldsize.y
 size = 640, 480
 
 screen = pygame.display.set_mode(size)
 
-ground = [[0] * fieldsize[1] for x in range(fieldsize[0] + 1)]
+ground = [[0] * fieldsize.y for x in range(fieldsize.x + 1)]
 
 class Shape:
     def __init__(self, x, y, color = pygame.Color("yellow")):
@@ -90,7 +93,7 @@ class Shape:
             y = block.y + self.y + dy
             if x < 0 or y < 0:
                 return True
-            if x > fieldsize[0] - 1:
+            if x > fieldsize.x - 1:
                 return True
             if ground[x][y] != 0:
                 return True
@@ -100,7 +103,7 @@ class Shape:
         for block in self.blocks:
             x = block.x + self.x
             y = block.y + self.y
-            if y + dy > fieldsize[1] - 1:
+            if y + dy > fieldsize.y - 1:
                 return True
             if ground[x][y + dy] != 0:
                 return True
@@ -117,7 +120,7 @@ class Block:
         y = block.y
         if x < 0:
             return True
-        if y > fieldsize[0] - 1:
+        if y > fieldsize.x - 1:
             return True
         if ground[x][y] != 0:
             return True
@@ -238,8 +241,8 @@ def draw_Rect(x, y, playfield, color):
     pygame.draw.rect(screen, pygame.Color("black"), rect, 1)
 
 def draw_grid():
-    for x in range(0, fieldsize[0] + 1):
-        for y in range(0, fieldsize[1] + 1):
+    for x in range(0, fieldsize.x + 1):
+        for y in range(0, fieldsize.y + 1):
             draw_Rect(x, y, pygame.Color("white"))
 
 def draw_ground(playfield):
@@ -271,7 +274,7 @@ class GameLogic():
 
     def spawn_shape(self):
         shapes = [Square, StepRight, StepLeft, Long, DoubleStep, LLeft, LRight]
-        x = int(round(fieldsize[0] / 2) - 2)
+        x = int(round(fieldsize.x / 2) - 2)
         y = 0
         shapeclass = random.choice(shapes)
         if shapeclass == Long or shapeclass == LLeft or shapeclass == LRight:
@@ -284,10 +287,10 @@ class GameLogic():
            self.spawn_shape()
 
     def remove_line(self, line_no):
-        for x in range(fieldsize[0]):
+        for x in range(fieldsize.x):
             ground[x][line_no] = 0
         for y in range(line_no - 1, -1, -1):
-            for x in range(fieldsize[0]):
+            for x in range(fieldsize.x):
                 block = ground[x][y]
                 if block != 0:
                     ground[x][y] = 0
@@ -303,7 +306,7 @@ class GameLogic():
         complete = False
         for block in self.shape.get_blocks():
             complete = True
-            for x in range(fieldsize[0]):
+            for x in range(fieldsize.x):
                 if ground[x][block.y] == 0:
                     complete = False
                     break
@@ -355,7 +358,7 @@ class Ticker:
         pass
 
 playfield = Playfield(5, 5, 10, 18)
-playfield2 = Playfield(20 + fieldsize[0] * rectsize, 5, fieldsize[0], fieldsize[1])
+playfield2 = Playfield(20 + fieldsize.x * rectsize, 5, fieldsize.x, fieldsize.y)
 
 logic = GameLogic()
 logic.start()

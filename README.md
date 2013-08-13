@@ -1,4 +1,4 @@
-PygameTetris
+Tetris
 ============
 
 Just an exercise
