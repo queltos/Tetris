@@ -288,7 +288,6 @@ class GameLogic():
         """Remove single given line from ground, shift blocks above this line down 
         by one"""
 
-        print("removing line " + str(line_no))
         for y in range(line_no, 0, -1):
             for x in range(fieldsize.x):
                 ground[x][y] = ground[x][y - 1]
