@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 import pygame
-import sys, pygame
+import sys
 import random
 
 pygame.init()
@@ -35,14 +35,12 @@ class Shape:
 
     def create_base(self, bstring):
         base = []
-        l_no = 0
-        for line in bstring.splitlines():
+        for (l_no, line) in enumerate(bstring.splitlines()):
             if line.strip() != "":
                 for (c_no, char) in enumerate(line.split()):
                     if char == '#':
                         base.append(Block(c_no, l_no, self.color))
                     
-                l_no += 1
         return base
 
     def __init_bases__(self):
@@ -287,15 +285,15 @@ class GameLogic():
            self.spawn_shape()
 
     def remove_line(self, line_no):
-        for x in range(fieldsize.x):
-            ground[x][line_no] = 0
-        for y in range(line_no - 1, -1, -1):
+        """Remove single given line from ground, shift blocks above this line down 
+        by one"""
+
+        print("removing line " + str(line_no))
+        for y in range(line_no, 0, -1):
             for x in range(fieldsize.x):
-                block = ground[x][y]
-                if block != 0:
-                    ground[x][y] = 0
-                    block.y = block.y + 1
-                    ground[x][y + 1] = block
+                ground[x][y] = ground[x][y - 1]
+                if ground[x][y] != 0:
+                    ground[x][y].y += 1
 
     def remove_lines(self, lines):
         for y in lines:
@@ -310,7 +308,7 @@ class GameLogic():
                 if ground[x][block.y] == 0:
                     complete = False
                     break
-            if complete:
+            if complete and block.y not in completed:
                 completed.append(block.y)
         self.remove_lines(completed)
 
@@ -367,6 +365,7 @@ t.start()
 tspeedy = Ticker(100, logic.move_down)
 tspeedy.active = False
 tspeedy.start()
+
 while 1:
     for event in pygame.event.get():
         if event.type == pygame.QUIT: sys.exit()
@@ -382,6 +381,8 @@ while 1:
                 tspeedy.active = True
             if event.key == pygame.K_SPACE:
                 logic.move_bottom()
+            if event.key == pygame.K_p:
+                t.active = not t.active
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_DOWN:
                 tspeedy.active = False
