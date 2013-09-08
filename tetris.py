@@ -22,7 +22,7 @@ screen = pygame.display.set_mode(size)
 ground = [[0] * fieldsize.y for x in range(fieldsize.x + 1)]
 
 class Shape:
-    def __init__(self, x, y, color = pygame.Color("yellow")):
+    def __init__(self, x = 0, y = 0, color = pygame.Color("yellow")):
         self.x = x
         self.y = y
         self.speed = 0
@@ -228,56 +228,73 @@ class LRight(Shape):
                             0 # #
                     """)
 
-def draw_Shape(shape, playfield):
-    for block in shape.get_blocks():
-        draw_Rect(block.x, block.y, playfield, block.color)
+class Renderer:
+    def draw_Shape(shape, playfield):
+        for block in shape.get_blocks():
+            draw_Rect(block.x, block.y, playfield, block.color)
+    
+    def draw_Rect(x, y, playfield, color):
+        rect = pygame.Rect(x * rectsize + playfield.x, y * rectsize + playfield.y \
+                , rectsize + 1, rectsize + 1)
+        screen.fill(color, rect)
+        pygame.draw.rect(screen, pygame.Color("black"), rect, 1)
+    
+    def draw_grid():
+        for x in range(0, fieldsize.x + 1):
+            for y in range(0, fieldsize.y + 1):
+                draw_Rect(x, y, pygame.Color("white"))
+    
+    def draw_ground(playfield):
+        for line in ground:
+            for block in line:
+                if block != 0:
+                    draw_Rect(block.x, block.y, playfield, block.color)
 
-def draw_Rect(x, y, playfield, color):
-    rect = pygame.Rect(x * rectsize + playfield.x, y * rectsize + playfield.y \
-            , rectsize + 1, rectsize + 1)
-    screen.fill(color, rect)
-    pygame.draw.rect(screen, pygame.Color("black"), rect, 1)
+    def draw_enemy():
+        for block in logic.enemy_blocks:
+            draw_Rect(block.x, block.y, playfield2, block.color)
 
-def draw_grid():
-    for x in range(0, fieldsize.x + 1):
-        for y in range(0, fieldsize.y + 1):
-            draw_Rect(x, y, pygame.Color("white"))
+    def draw_playfield_borders(playfield):
+        rect = pygame.Rect(playfield.x, playfield.y, \
+                rectsize * playfield.size['x'] + 1, \
+                rectsize * playfield.size['y'] + 1)
+        pygame.draw.rect(screen, pygame.Color("black"), rect, 1)
 
-def draw_ground(playfield):
-    for line in ground:
-        for block in line:
-            if block != 0:
-                draw_Rect(block.x, block.y, playfield, block.color)
-
-def draw_enemy():
-    for block in logic.enemy_blocks:
-        draw_Rect(block.x, block.y, playfield2, block.color)
-
-class Playfield():
+class Playfield:
     def __init__(self, x, y, x_size, y_size):
         self.x = x
         self.y = y
-        self.size = x_size, y_size
+        self.size = {'x': x_size, 'y': y_size}
 
     def draw_borders(self):
-        rect = pygame.Rect(self.x, self.y, rectsize * self.size[0] + 1, \
-                rectsize * self.size[1] + 1)
+        rect = pygame.Rect(self.x, self.y, rectsize * self.size['x'] + 1, \
+                rectsize * self.size['y'] + 1)
         pygame.draw.rect(screen, pygame.Color("black"), rect, 1)
 
 class GameLogic():
     def __init__(self):
         self.shape = None
+        self.nextshape = self.make_shape()
         self.ticklength = 1000
         self.enemy_blocks = []
 
-    def spawn_shape(self):
+    def make_shape(self):
         shapes = [Square, StepRight, StepLeft, Long, DoubleStep, LLeft, LRight]
-        x = int(round(fieldsize.x / 2) - 2)
-        y = 0
         shapeclass = random.choice(shapes)
-        if shapeclass == Long or shapeclass == LLeft or shapeclass == LRight:
+        return shapeclass(fieldsize.x + 2, 1)
+
+    def spawn_shape(self):
+        x = fieldsize.x / 2 - 2
+        y = 0
+
+        self.shape = self.nextshape
+
+        if type(self.shape) in [Long, LLeft, LRight]:
             y = -1
-        self.shape = shapeclass(x, y)
+
+        self.shape.x = x
+        self.shape.y = y
+        self.nextshape = self.make_shape()
         self.starttime = pygame.time.get_ticks()
 
     def start(self):
@@ -354,48 +371,52 @@ class Ticker:
             self.nexttick += self.interval
         pass
 
-playfield = Playfield(5, 5, 10, 18)
-playfield2 = Playfield(20 + fieldsize.x * rectsize, 5, fieldsize.x, fieldsize.y)
+def main():
+    playfield = Playfield(5, 5, 10, 18)
+    #playfield2 = Playfield(20 + fieldsize.x * rectsize, 5, fieldsize.x, fieldsize.y)
+    
+    logic = GameLogic()
+    logic.start()
+    t = Ticker(500, logic.move_down)
+    t.start()
+    tspeedy = Ticker(100, logic.move_down)
+    tspeedy.active = False
+    tspeedy.start()
+    
+    while 1:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    logic.shape.rotate()
+                if event.key == pygame.K_LEFT:
+                    logic.shape.move_left()
+                if event.key == pygame.K_RIGHT:
+                    logic.shape.move_right()
+                if event.key == pygame.K_DOWN:
+                    t.active = False
+                    tspeedy.active = True
+                if event.key == pygame.K_SPACE:
+                    logic.move_bottom()
+                if event.key == pygame.K_p:
+                    t.active = not t.active
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_DOWN:
+                    tspeedy.active = False
+                    t.active = True
+    
+        t.tick()
+        tspeedy.tick()
+    
+        screen.fill(white)
+        playfield.draw_borders()
+        #playfield2.draw_borders()
+        draw_enemy()
+    
+        draw_Shape(logic.shape, playfield)
+        draw_Shape(logic.nextshape, playfield)
+        draw_ground(playfield)
+    
+        pygame.display.flip()
 
-logic = GameLogic()
-logic.start()
-t = Ticker(500, logic.move_down)
-t.start()
-tspeedy = Ticker(100, logic.move_down)
-tspeedy.active = False
-tspeedy.start()
-
-while 1:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                logic.shape.rotate()
-            if event.key == pygame.K_LEFT:
-                logic.shape.move_left()
-            if event.key == pygame.K_RIGHT:
-                logic.shape.move_right()
-            if event.key == pygame.K_DOWN:
-                t.active = False
-                tspeedy.active = True
-            if event.key == pygame.K_SPACE:
-                logic.move_bottom()
-            if event.key == pygame.K_p:
-                t.active = not t.active
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_DOWN:
-                tspeedy.active = False
-                t.active = True
-
-    t.tick()
-    tspeedy.tick()
-
-    screen.fill(white)
-    playfield.draw_borders()
-    playfield2.draw_borders()
-    draw_enemy()
-
-    draw_Shape(logic.shape, playfield)
-    draw_ground(playfield)
-
-    pygame.display.flip()
+if __name__ == '__main__': main()
